@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>War Performance - Clan Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-sword text-red-400 text-2xl"></i>
+                    <h1 class="text-xl font-bold">War Performance</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="/war" class="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 transition">
+                        <i class="fas fa-sword mr-2"></i>War Stats
+                    </a>
+                    <a href="{{ url_for('cwl_team_selection') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_team_selection' %}bg-emerald-700{% else %}bg-emerald-600 hover:bg-emerald-700{% endif %}">
+                        <i class="fas fa-users-cog mr-2"></i>CWL Team
+                    </a>
+                    <a href="{{ url_for('cwl_roster') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_roster' %}bg-cyan-700{% else %}bg-cyan-600 hover:bg-cyan-700{% endif %}">
+                        <i class="fas fa-list mr-2"></i>CWL Roster
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Win/Loss Pie Chart -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-chart-pie mr-2 text-green-400"></i>
+                    Win/Loss Record
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="winLossChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Stars Trend Line Chart -->
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fas fa-chart-line mr-2 text-yellow-400"></i>
+                    Stars Trend (Last 10 Wars)
+                </h3>
+                <div class="relative h-64">
+                    <canvas id="starsTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Destruction Comparison Chart -->
+        <div class="bg-gray-800 rounded-xl p-6 shadow-xl mb-8">
+            <h3 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fas fa-chart-bar mr-2 text-orange-400"></i>
+                Destruction Percentage Comparison
+            </h3>
+            <div class="relative h-64">
+                <canvas id="destructionChart"></canvas>
+            </div>
+        </div>
+
+        <!-- War Timeline -->
+        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="bg-gray-700 px-6 py-4 border-b border-gray-600">
+                <h3 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-history mr-2 text-blue-400"></i>
+                    Recent War History
+                </h3>
+            </div>
+            
+            {% if war_log %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Result</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Opponent</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Stars</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Destruction</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Team Size</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">End Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-600">
+                        {% for war in war_log %}
+                        <tr class="hover:bg-gray-700 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if war.result == 'win' %}
+                                <span class="px-3 py-1 text-xs font-semibold bg-green-600 text-white rounded-full">
+                                    <i class="fas fa-trophy mr-1"></i>WIN
+                                </span>
+                                {% elif war.result == 'lose' %}
+                                <span class="px-3 py-1 text-xs font-semibold bg-red-600 text-white rounded-full">
+                                    <i class="fas fa-times mr-1"></i>LOSS
+                                </span>
+                                {% else %}
+                                <span class="px-3 py-1 text-xs font-semibold bg-yellow-600 text-black rounded-full">
+                                    <i class="fas fa-handshake mr-1"></i>TIE
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fas fa-shield text-white text-xs"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium">{{ war.opponent.name }}</div>
+                                        <div class="text-sm text-gray-400">{{ war.opponent.tag }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-yellow-400 font-semibold">{{ war.clan.stars }}</span>
+                                    <span class="text-gray-400">vs</span>
+                                    <span class="text-red-400 font-semibold">{{ war.opponent.stars }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-green-400 font-semibold">{{ war.clan.destructionPercentage }}%</span>
+                                    <span class="text-gray-400">vs</span>
+                                    <span class="text-red-400 font-semibold">{{ war.opponent.destructionPercentage }}%</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="text-blue-400">{{ war.teamSize }}v{{ war.teamSize }}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                                {{ war.endTime[:10] }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-400">
+                <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+                <p>No war data available</p>
+                <p class="text-sm mt-2">Check your API key and ensure the clan tag is correct</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- War Statistics Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl" id="winRate">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Win Rate</p>
+                        <p class="text-2xl font-bold text-green-400" id="winRateValue">--%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-percentage text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl" id="avgStars">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Avg Stars</p>
+                        <p class="text-2xl font-bold text-yellow-400" id="avgStarsValue">--</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-star text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl" id="avgDestruction">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Avg Destruction</p>
+                        <p class="text-2xl font-bold text-orange-400" id="avgDestructionValue">--%</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-fire text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl" id="totalWars">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Wars</p>
+                        <p class="text-2xl font-bold text-blue-400" id="totalWarsValue">--</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-sword text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400">
+            <p>&copy; 2025 timepass. Built by subhash.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Chart.js configurations
+        Chart.defaults.color = '#9CA3AF';
+        Chart.defaults.borderColor = '#374151';
+
+        let warStatsData = null;
+
+        // Fetch war statistics
+        async function fetchWarStats() {
+            try {
+                const response = await fetch('/api/war-stats');
+                warStatsData = await response.json();
+                
+                if (warStatsData.error) {
+                    console.error('War stats error:', warStatsData.error);
+                    return;
+                }
+                
+                initializeCharts();
+                updateSummaryCards();
+            } catch (error) {
+                console.error('Failed to fetch war stats:', error);
+            }
+        }
+
+        // Initialize all charts
+        function initializeCharts() {
+            if (!warStatsData) return;
+
+            // Win/Loss Pie Chart
+            const winLossCtx = document.getElementById('winLossChart').getContext('2d');
+            new Chart(winLossCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Wins', 'Losses', 'Draws'],
+                    datasets: [{
+                        data: [
+                            warStatsData.win_loss.wins,
+                            warStatsData.win_loss.losses,
+                            warStatsData.win_loss.draws
+                        ],
+                        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                        borderWidth: 2,
+                        borderColor: '#1F2937'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Stars Trend Line Chart
+            const starsTrendCtx = document.getElementById('starsTrendChart').getContext('2d');
+            new Chart(starsTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: warStatsData.stars_trend.length}, (_, i) => `War ${i + 1}`),
+                    datasets: [{
+                        label: 'Our Stars',
+                        data: warStatsData.stars_trend.reverse(),
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#F59E0B',
+                        pointBorderColor: '#1F2937',
+                        pointBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#374151'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#374151'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Destruction Comparison Bar Chart
+            const destructionCtx = document.getElementById('destructionChart').getContext('2d');
+            new Chart(destructionCtx, {
+                type: 'bar',
+                data: {
+                    labels: Array.from({length: warStatsData.destruction_comparison.our_destruction.length}, (_, i) => `War ${i + 1}`),
+                    datasets: [{
+                        label: 'Our Destruction %',
+                        data: warStatsData.destruction_comparison.our_destruction.reverse(),
+                        backgroundColor: '#10B981',
+                        borderColor: '#059669',
+                        borderWidth: 1
+                    }, {
+                        label: 'Opponent Destruction %',
+                        data: warStatsData.destruction_comparison.opponent_destruction.reverse(),
+                        backgroundColor: '#EF4444',
+                        borderColor: '#DC2626',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                color: '#374151'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: '#374151'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update summary cards
+        function updateSummaryCards() {
+            if (!warStatsData) return;
+
+            const totalWars = warStatsData.win_loss.wins + warStatsData.win_loss.losses + warStatsData.win_loss.draws;
+            const winRate = totalWars > 0 ? ((warStatsData.win_loss.wins / totalWars) * 100).toFixed(1) : 0;
+            const avgStars = warStatsData.stars_trend.length > 0 ? 
+                (warStatsData.stars_trend.reduce((a, b) => a + b, 0) / warStatsData.stars_trend.length).toFixed(1) : 0;
+            const avgDestruction = warStatsData.destruction_comparison.our_destruction.length > 0 ?
+                (warStatsData.destruction_comparison.our_destruction.reduce((a, b) => a + b, 0) / warStatsData.destruction_comparison.our_destruction.length).toFixed(1) : 0;
+
+            document.getElementById('winRateValue').textContent = winRate + '%';
+            document.getElementById('avgStarsValue').textContent = avgStars;
+            document.getElementById('avgDestructionValue').textContent = avgDestruction + '%';
+            document.getElementById('totalWarsValue').textContent = totalWars;
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', fetchWarStats);
+
+        // Auto-refresh every 5 minutes
+        setTimeout(() => {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>

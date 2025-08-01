@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Current War</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-4 space-y-4 sm:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-yellow-400 text-2xl"></i>
+                    <h1 class="text-xl font-bold">Current War</h1>
+                </div>
+                <div class="flex flex-wrap justify-center space-x-2 sm:space-x-4">
+                    <a href="{{ url_for('home') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'home' %}bg-blue-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('war_performance') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'war_performance' %}bg-red-700{% else %}bg-red-600 hover:bg-red-700{% endif %}">
+                        <i class="fas fa-sword mr-2"></i>War Stats
+                    </a>
+                    <a href="{{ url_for('current_war') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'current_war' %}bg-purple-700{% else %}bg-purple-600 hover:bg-purple-700{% endif %}">
+                        <i class="fas fa-battle-axe mr-2"></i>Current War
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        {% if current_war and current_war.state != 'notInWar' %}
+        <!-- War Info Card -->
+        <div class="bg-gradient-to-r from-blue-800 to-purple-800 rounded-xl p-6 mb-8 shadow-xl">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <div class="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <i class="fas fa-battle-axe text-3xl text-gray-900"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold">{{ current_war.clan.name }} vs {{ current_war.opponent.name }}</h2>
+                        <p class="text-blue-200">State: {{ current_war.state|title }}</p>
+                        <p class="text-sm text-blue-300">Start Time: {{ current_war.startTime|default('N/A') }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ current_war.clan.stars }}</div>
+                        <div class="text-sm text-blue-200">Our Stars</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ current_war.opponent.stars }}</div>
+                        <div class="text-sm text-blue-200">Opponent Stars</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ current_war.clan.destructionPercentage }}%</div>
+                        <div class="text-sm text-blue-200">Our Destruction</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ current_war.opponent.destructionPercentage }}%</div>
+                        <div class="text-sm text-blue-200">Opponent Destruction</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attacks Table -->
+        {% if current_war.clan.attacks %}
+        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="bg-gray-700 px-6 py-4 border-b border-gray-600">
+                <h3 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-burst mr-2 text-red-400"></i>
+                    Attacks
+                </h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Attacker</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Defender</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Stars</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Destruction</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-600">
+                        {% for attack in current_war.clan.attacks %}
+                        <tr class="hover:bg-gray-700 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <a href="{{ url_for('player', player_tag=attack.attackerTag) }}" class="hover:text-blue-400">{{ attack.attacker.name }}</a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">{{ attack.defender.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-400 mr-1"></i>
+                                    {{ attack.stars }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-burst text-red-400 mr-1"></i>
+                                    {{ attack.destructionPercentage }}%
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- Error Message -->
+        <div class="bg-red-800 border border-red-600 rounded-lg p-6 mb-8">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 text-2xl mr-4"></i>
+                <div>
+                    <h3 class="text-xl font-bold">No Current War</h3>
+                    <p class="text-red-200">The clan is not currently in a war.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400">
+            <p>&copy; 2025 Clash of Clans Tracker. Built with Flask & Tailwind CSS.</p>
+            <p class="text-sm mt-2">Data refreshed every 5 minutes from Clash of Clans API</p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-refresh page every 5 minutes
+        setTimeout(() => {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>

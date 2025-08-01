@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if clan_info %}{{ clan_info.name }}{% else %}Clan Tracker{% endif %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-4 space-y-4 sm:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-yellow-400 text-2xl"></i>
+                    <h1 class="text-xl font-bold">
+                        {% if clan_info %}{{ clan_info.name }}{% else %}Clan Tracker{% endif %}
+                    </h1>
+                </div>
+                <div class="flex flex-wrap justify-center space-x-2 sm:space-x-4">
+                    <a href="{{ url_for('home') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'home' %}bg-blue-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('war_performance') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'war_performance' %}bg-red-700{% else %}bg-red-600 hover:bg-red-700{% endif %}">
+                        <i class="fas fa-sword mr-2"></i>War Stats
+                    </a>
+                    <a href="{{ url_for('current_war') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'current_war' %}bg-purple-700{% else %}bg-purple-600 hover:bg-purple-700{% endif %}">
+                        <i class="fas fa-battle-axe mr-2"></i>Current War
+                    </a>
+                    <a href="{{ url_for('cwl_team_selection_page') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_team_selection' %}bg-emerald-700{% else %}bg-emerald-600 hover:bg-emerald-700{% endif %}">
+                        <i class="fas fa-users-cog mr-2"></i>CWL Team
+                    </a>
+                    <a href="{{ url_for('cwl_roster') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_roster' %}bg-cyan-700{% else %}bg-cyan-600 hover:bg-cyan-700{% endif %}">
+                        <i class="fas fa-list mr-2"></i>CWL Roster
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        {% if clan_info %}
+        <!-- Clan Info Card -->
+        <div class="bg-gradient-to-r from-blue-800 to-purple-800 rounded-xl p-6 mb-8 shadow-xl">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <div class="w-20 h-20 bg-yellow-400 rounded-full flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-3xl text-gray-900"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-bold">{{ clan_info.name }}</h2>
+                        <p class="text-blue-200">{{ clan_info.tag }}</p>
+                        <p class="text-sm text-blue-300">{{ clan_info.description|default('No description available') }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ clan_info.clanLevel }}</div>
+                        <div class="text-sm text-blue-200">Level</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ clan_info.clanPoints }}</div>
+                        <div class="text-sm text-blue-200">Points</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ clan_info.warWins|default(0) }}</div>
+                        <div class="text-sm text-blue-200">War Wins</div>
+                    </div>
+                    <div class="bg-white bg-opacity-20 rounded-lg p-3">
+                        <div class="text-2xl font-bold">{{ clan_info.members }}</div>
+                        <div class="text-sm text-blue-200">Members</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Error Message -->
+        <div class="bg-red-800 border border-red-600 rounded-lg p-6 mb-8">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-400 text-2xl mr-4"></i>
+                <div>
+                    <h3 class="text-xl font-bold">Unable to Load Clan Data</h3>
+                    <p class="text-red-200">Please check your API key and clan tag in the .env file.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Members Table -->
+        <div class="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
+            <div class="bg-gray-700 px-6 py-4 border-b border-gray-600">
+                <h3 class="text-xl font-semibold flex items-center">
+                    <i class="fas fa-users mr-2 text-green-400"></i>
+                    Clan Members
+                </h3>
+            </div>
+            
+            {% if members %}
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-700">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Trophies</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Donations</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Received</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Experience</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-600">
+                        {% for member in members %}
+                        <tr class="hover:bg-gray-700 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <a href="{{ url_for('player', player_tag=member.tag) }}"
+                                   class="flex items-center hover:text-blue-400 transition">
+                                    <div class="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mr-3">
+                                        <span class="text-xs font-bold text-gray-900">{{ member.name[0] }}</span>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium">{{ member.name }}</div>
+                                        <div class="text-sm text-gray-400">{{ member.tag }}</div>
+                                    </div>
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full
+                                    {% if member.role == 'leader' %}bg-red-600 text-white
+                                    {% elif member.role == 'coLeader' %}bg-orange-600 text-white
+                                    {% elif member.role == 'elder' %}bg-yellow-600 text-black
+                                    {% else %}bg-gray-600 text-white{% endif %}">
+                                    {{ member.role|title }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-trophy text-yellow-400 mr-1"></i>
+                                    {{ member.trophies }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-gift text-green-400 mr-1"></i>
+                                    {{ member.donations }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-heart text-red-400 mr-1"></i>
+                                    {{ member.donationsReceived }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-blue-400 mr-1"></i>
+                                    {{ member.expLevel }}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-8 text-center text-gray-400">
+                <i class="fas fa-users-slash text-4xl mb-4"></i>
+                <p>No member data available</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Stats Cards -->
+        {% if members %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Total Donations</p>
+                        <p class="text-2xl font-bold text-green-400">
+                            {{ members|sum(attribute='donations') }}
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-gift text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Average Trophies</p>
+                        <p class="text-2xl font-bold text-yellow-400">
+                            {{ (members|sum(attribute='trophies') / members|length)|round|int }}
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-trophy text-white"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-800 rounded-xl p-6 shadow-xl">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">Active Members</p>
+                        <p class="text-2xl font-bold text-blue-400">{{ members|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-users text-white"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400">
+            <p>&copy; 2025 timepass. Built by subhash.</p>
+            <p class="text-sm mt-2"></p>
+        </div>
+    </footer>
+
+    <script>
+        // Auto-refresh page every 5 minutes
+        setTimeout(() => {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>

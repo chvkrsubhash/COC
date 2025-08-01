@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CWL Team Selection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .member-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .member-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .member-card.selected {
+            border: 2px solid #10b981;
+            background-color: #1a2c34;
+        }
+        .selection-counter {
+            position: sticky;
+            top: 20px;
+            z-index: 1000;
+        }
+        .role-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        .trophy-icon {
+            color: #f59e0b;
+        }
+        .member-stats {
+            font-size: 0.9rem;
+        }
+        .bulk-actions {
+            margin-bottom: 20px;
+        }
+        .search-filter {
+            margin-bottom: 20px;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-4 space-y-4 sm:space-y-0">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-yellow-400 text-2xl"></i>
+                    <h1 class="text-xl font-bold">CWL Team Selection</h1>
+                </div>
+                <div class="flex flex-wrap justify-center space-x-2 sm:space-x-4">
+                    <a href="{{ url_for('home') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'home' %}bg-blue-700{% else %}bg-blue-600 hover:bg-blue-700{% endif %}">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="{{ url_for('war_performance') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'war_performance' %}bg-red-700{% else %}bg-red-600 hover:bg-red-700{% endif %}">
+                        <i class="fas fa-sword mr-2"></i>War Stats
+                    </a>
+                    <a href="{{ url_for('current_war') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'current_war' %}bg-purple-700{% else %}bg-purple-600 hover:bg-purple-700{% endif %}">
+                        <i class="fas fa-battle-axe mr-2"></i>Current War
+                    </a>
+
+                    <a href="{{ url_for('cwl_team_selection_page') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_team_selection_page' %}bg-emerald-700{% else %}bg-emerald-600 hover:bg-emerald-700{% endif %}">
+                        <i class="fas fa-users-cog mr-2"></i>CWL Team
+                    </a>
+                    <a href="{{ url_for('cwl_roster') }}"
+                       class="px-4 py-2 rounded-lg transition {% if request.endpoint == 'cwl_roster' %}bg-cyan-700{% else %}bg-cyan-600 hover:bg-cyan-700{% endif %}">
+                        <i class="fas fa-list mr-2"></i>CWL Roster
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="bg-{{ 'green-800' if category == 'success' else 'red-800' }} border {{ 'border-green-600' if category == 'success' else 'border-red-600' }} rounded-lg p-6 mb-4">
+                        <div class="flex items-center">
+                            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }} text-{{ 'green-400' if category == 'success' else 'red-400' }} text-2xl mr-4"></i>
+                            <div>
+                                <p class="text-white">{{ message }}</p>
+                                <button type="button" class="text-white opacity-75 hover:opacity-100 ml-4" onclick="this.parentElement.parentElement.remove()">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+        {% endwith %}
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-semibold flex items-center">
+                    <i class="fas fa-users-cog mr-2 text-emerald-400"></i>
+                    CWL Team Selection
+                </h1>
+                <p class="text-gray-400">Select up to 15 members for Clan War League</p>
+            </div>
+            <div class="selection-counter bg-gray-800 rounded-xl p-6 shadow-xl">
+                <div class="text-center">
+                    <h3 class="text-xl font-bold" id="selectedCount">{{ selected_count }}</h3>
+                    <p class="text-sm text-gray-400">Members Selected</p>
+                    <div class="w-full bg-gray-700 rounded-full h-1.5 mt-2">
+                        <div class="bg-emerald-500 h-1.5 rounded-full" 
+                             style="width: {{ (selected_count / 15) * 100 }}%"></div>
+                    </div>
+                    <p class="text-sm text-gray-400 mt-1">{{ selected_count }}/15</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="search-filter bg-gray-800 rounded-xl p-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="searchMembers" class="block text-sm font-medium text-gray-300">Search Members</label>
+                    <input type="text" id="searchMembers" placeholder="Search by name..."
+                           class="mt-1 block w-full rounded-lg bg-gray-700 border-gray-600 text-white p-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label for="filterRole" class="block text-sm font-medium text-gray-300">Filter by Role</label>
+                    <select id="filterRole" class="mt-1 block w-full rounded-lg bg-gray-700 border-gray-600 text-white p-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="">All Roles</option>
+                        <option value="leader">Leader</option>
+                        <option value="coLeader">Co-Leader</option>
+                        <option value="elder">Elder</option>
+                        <option value="member">Member</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="sortBy" class="block text-sm font-medium text-gray-300">Sort By</label>
+                    <select id="sortBy" class="mt-1 block w-full rounded-lg bg-gray-700 border-gray-600 text-white p-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <option value="trophies">Sort by Trophies</option>
+                        <option value="donations">Sort by Donations</option>
+                        <option value="name">Sort by Name</option>
+                        <option value="role">Sort by Role</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Actions -->
+        <div class="bulk-actions flex space-x-4 mb-8">
+            <button class="px-4 py-2 bg-yellow-600 rounded-lg hover:bg-yellow-700 transition" onclick="selectTopPlayers()">
+                <i class="fas fa-trophy mr-2"></i>Top 15 by Trophies
+            </button>
+            <button class="px-4 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition" onclick="selectAll()">
+                <i class="fas fa-check-double mr-2"></i>Select All
+            </button>
+            <button class="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 transition" onclick="clearAll()">
+                <i class="fas fa-times mr-2"></i>Clear All
+            </button>
+        </div>
+
+        <!-- Team Selection Form -->
+        <form method="POST" id="teamSelectionForm">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="membersContainer">
+                {% for member in members %}
+                <div class="member-item" 
+                     data-name="{{ member.name.lower() }}"
+                     data-role="{{ member.role }}"
+                     data-trophies="{{ member.trophies }}"
+                     data-donations="{{ member.donations }}">
+                    <div class="member-card bg-gray-800 rounded-xl shadow-xl h-full {% if member.selected %}selected{% endif %}"
+                         onclick="toggleMemberSelection('{{ member.tag }}', this)">
+                        <div class="p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div class="flex items-center">
+                                    <input class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded mr-2 member-checkbox" 
+                                           type="checkbox" 
+                                           name="selected_members" 
+                                           value="{{ member.tag }}"
+                                           id="member_{{ loop.index }}"
+                                           {% if member.selected %}checked{% endif %}>
+                                    <label class="font-bold text-white" for="member_{{ loop.index }}">{{ member.name }}</label>
+                                </div>
+                                <span class="role-badge rounded-full px-2 py-1
+                                    {% if member.role == 'leader' %}bg-red-600
+                                    {% elif member.role == 'coLeader' %}bg-yellow-600
+                                    {% elif member.role == 'elder' %}bg-blue-600
+                                    {% else %}bg-gray-600{% endif %}">
+                                    {% if member.role == 'leader' %}<i class="fas fa-crown mr-1"></i>Leader
+                                    {% elif member.role == 'coLeader' %}<i class="fas fa-star mr-1"></i>Co-Leader
+                                    {% elif member.role == 'elder' %}<i class="fas fa-shield mr-1"></i>Elder
+                                    {% else %}<i class="fas fa-user mr-1"></i>Member{% endif %}
+                                </span>
+                            </div>
+                            <div class="member-stats grid grid-cols-3 text-center">
+                                <div>
+                                    <p class="text-xs text-gray-400">Trophies</p>
+                                    <p class="font-bold trophy-icon">
+                                        <i class="fas fa-trophy mr-1"></i>{{ member.trophies }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400">Donations</p>
+                                    <p class="font-bold text-green-400">
+                                        <i class="fas fa-gift mr-1"></i>{{ member.donations }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-400">Received</p>
+                                    <p class="font-bold text-blue-400">
+                                        <i class="fas fa-heart mr-1"></i>{{ member.donationsReceived }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <p class="text-xs text-gray-400">
+                                    <i class="fas fa-tag mr-1"></i>{{ member.tag }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end space-x-4 mt-8">
+                <button type="submit" class="px-6 py-3 bg-emerald-600 rounded-lg hover:bg-emerald-700 transition" id="submitBtn">
+                    <i class="fas fa-save mr-2"></i>Save CWL Team Selection
+                </button>
+                <a href="{{ url_for('cwl_roster') }}" class="px-6 py-3 bg-cyan-600 rounded-lg hover:bg-cyan-700 transition">
+                    <i class="fas fa-eye mr-2"></i>View Current Roster
+                </a>
+            </div>
+        </form>
+
+        {% if last_updated %}
+        <div class="mt-4 text-center text-gray-400">
+            <p class="text-sm">Last updated: {{ last_updated.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400">
+            <p>&copy; 2025 timepass. Built by subhash.</p>
+        </div>
+    </footer>
+
+    <script>
+        let selectedCount = {{ selected_count }};
+        const maxSelection = 25;
+
+        function updateCounter() {
+            const selectedCountElement = document.getElementById('selectedCount');
+            const progressBar = document.querySelector('.selection-counter .bg-emerald-500');
+            const counterText = document.querySelector('.selection-counter p:last-child');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            selectedCountElement.textContent = selectedCount;
+            progressBar.style.width = (selectedCount / maxSelection) * 100 + '%';
+            counterText.textContent = `${selectedCount}/${maxSelection}`;
+            
+            if (selectedCount > maxSelection) {
+                submitBtn.classList.remove('bg-emerald-600', 'hover:bg-emerald-700');
+                submitBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                submitBtn.innerHTML = `<i class="fas fa-exclamation-triangle mr-2"></i>Too Many Selected (${selectedCount}/15)`;
+            } else {
+                submitBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                submitBtn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
+                submitBtn.innerHTML = `<i class="fas fa-save mr-2"></i>Save CWL Team Selection`;
+            }
+        }
+
+        function toggleMemberSelection(memberTag, cardElement) {
+            const checkbox = cardElement.querySelector('.member-checkbox');
+            checkbox.checked = !checkbox.checked;
+            
+            if (checkbox.checked) {
+                cardElement.classList.add('selected');
+                selectedCount++;
+            } else {
+                cardElement.classList.remove('selected');
+                selectedCount--;
+            }
+            
+            updateCounter();
+        }
+
+        function selectTopPlayers() {
+            clearAll();
+            const members = Array.from(document.querySelectorAll('.member-item'));
+            const sortedMembers = members.sort((a, b) => {
+                return parseInt(b.dataset.trophies) - parseInt(a.dataset.trophies);
+            });
+            
+            for (let i = 0; i < Math.min(15, sortedMembers.length); i++) {
+                const checkbox = sortedMembers[i].querySelector('.member-checkbox');
+                const card = sortedMembers[i].querySelector('.member-card');
+                checkbox.checked = true;
+                card.classList.add('selected');
+                selectedCount++;
+            }
+            updateCounter();
+        }
+
+        function selectAll() {
+            document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+                if (!checkbox.checked) {
+                    checkbox.checked = true;
+                    checkbox.closest('.member-card').classList.add('selected');
+                    selectedCount++;
+                }
+            });
+            updateCounter();
+        }
+
+        function clearAll() {
+            document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkbox.checked = false;
+                    checkbox.closest('.member-card').classList.remove('selected');
+                }
+            });
+            selectedCount = 0;
+            updateCounter();
+        }
+
+        // Search functionality
+        document.getElementById('searchMembers').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.member-item').forEach(item => {
+                const memberName = item.dataset.name;
+                item.style.display = memberName.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        // Role filter
+        document.getElementById('filterRole').addEventListener('change', function() {
+            const selectedRole = this.value;
+            document.querySelectorAll('.member-item').forEach(item => {
+                item.style.display = (selectedRole === '' || item.dataset.role === selectedRole) ? 'block' : 'none';
+            });
+        });
+
+        // Sort functionality
+        document.getElementById('sortBy').addEventListener('change', function() {
+            const sortBy = this.value;
+            const container = document.getElementById('membersContainer');
+            const items = Array.from(container.children);
+            
+            items.sort((a, b) => {
+                switch(sortBy) {
+                    case 'trophies':
+                        return parseInt(b.dataset.trophies) - parseInt(a.dataset.trophies);
+                    case 'donations':
+                        return parseInt(b.dataset.donations) - parseInt(a.dataset.donations);
+                    case 'name':
+                        return a.dataset.name.localeCompare(b.dataset.name);
+                    case 'role':
+                        const roleOrder = {'leader': 1, 'coLeader': 2, 'elder': 3, 'member': 4};
+                        return roleOrder[a.dataset.role] - roleOrder[b.dataset.role];
+                    default:
+                        return 0;
+                }
+            });
+            
+            items.forEach(item => container.appendChild(item));
+        });
+
+        // Form validation with toast
+        document.getElementById('teamSelectionForm').addEventListener('submit', function(e) {
+            if (selectedCount > maxSelection) {
+                e.preventDefault();
+                showToast(`You can only select up to 15 members for CWL. Currently selected: ${selectedCount}`, 'error');
+                return false;
+            }
+            
+            if (selectedCount === 0) {
+                if (!confirm('No members selected. Are you sure you want to clear the CWL team?')) {
+                    e.preventDefault();
+                    showToast('CWL team selection cancelled', 'error');
+                    return false;
+                }
+            }
+            showToast('CWL team selection saved successfully!', 'success');
+        });
+
+        // Toast notification
+        function showToast(message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast bg-${type === 'success' ? 'green' : 'red'}-800 text-white p-4 rounded-lg shadow-lg flex items-center`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} mr-2"></i>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Initialize counter on page load
+        updateCounter();
+
+        // Auto-refresh page every 5 minutes
+        setTimeout(() => {
+            location.reload();
+        }, 300000);
+    </script>
+</body>
+</html>

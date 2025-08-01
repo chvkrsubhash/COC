@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Clan Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-gray-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-shield-alt text-yellow-400 text-2xl"></i>
+                    <h1 class="text-xl font-bold">Clan Tracker</h1>
+                </div>
+                <div class="flex space-x-4">
+                    <a href="/" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+                        <i class="fas fa-home mr-2"></i>Dashboard
+                    </a>
+                    <a href="/war" class="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-700 transition">
+                        <i class="fas fa-sword mr-2"></i>War Stats
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Error Content -->
+    <div class="max-w-4xl mx-auto px-4 py-12">
+        <div class="bg-red-800 border border-red-600 rounded-xl p-8 shadow-xl">
+            <div class="text-center">
+                <div class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-exclamation-triangle text-4xl text-white"></i>
+                </div>
+                
+                <h1 class="text-3xl font-bold mb-4">Oops! Something went wrong</h1>
+                
+                <div class="bg-red-700 rounded-lg p-4 mb-6">
+                    <p class="text-red-100 text-sm font-mono">{{ error }}</p>
+                </div>
+
+                <div class="text-left max-w-2xl mx-auto">
+                    <h3 class="text-xl font-semibold mb-4 text-red-200">Common Solutions:</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-red-700 bg-opacity-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-200 mb-2">
+                                <i class="fas fa-key mr-2"></i>Check API Key
+                            </h4>
+                            <ul class="text-red-100 text-sm space-y-1">
+                                <li>• Ensure your API key is valid and active</li>
+                                <li>• Visit <a href="https://developer.clashofclans.com/" class="text-yellow-300 underline" target="_blank">Clash of Clans Developer Portal</a></li>
+                                <li>• Make sure your IP address is whitelisted</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-red-700 bg-opacity-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-200 mb-2">
+                                <i class="fas fa-hashtag mr-2"></i>Check Clan Tag
+                            </h4>
+                            <ul class="text-red-100 text-sm space-y-1">
+                                <li>• Clan tag must include the # symbol (e.g., #2Y9L9Q9C)</li>
+                                <li>• Make sure the clan tag is correct</li>
+                                <li>• Verify the clan exists and is public</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-red-700 bg-opacity-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-200 mb-2">
+                                <i class="fas fa-shield-alt mr-2"></i>War Log Access
+                            </h4>
+                            <ul class="text-red-100 text-sm space-y-1">
+                                <li>• War log must be set to "Public" in clan settings</li>
+                                <li>• Clan must have participated in at least one war</li>
+                                <li>• Only clan leaders/co-leaders can change privacy settings</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-red-700 bg-opacity-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-200 mb-2">
+                                <i class="fas fa-clock mr-2"></i>Rate Limiting
+                            </h4>
+                            <ul class="text-red-100 text-sm space-y-1">
+                                <li>• Wait a few minutes if you've made too many requests</li>
+                                <li>• Each API key has usage limits</li>
+                                <li>• Data is cached for 5 minutes to reduce API calls</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="/" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg transition font-semibold">
+                        <i class="fas fa-home mr-2"></i>Back to Dashboard
+                    </a>
+                    <button onclick="location.reload()" class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg transition font-semibold">
+                        <i class="fas fa-redo mr-2"></i>Try Again
+                    </button>
+                </div>
+
+                <div class="mt-6 text-sm text-red-300">
+                    <p>If the problem persists, check your .env file configuration:</p>
+                    <div class="bg-gray-800 rounded-lg p-3 mt-2 text-left font-mono text-xs">
+                        <div class="text-gray-400"># .env file example</div>
+                        <div class="text-green-400">API_KEY=your_api_key_here</div>
+                        <div class="text-blue-400">CLAN_TAG=#2Y9L9Q9C</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-gray-400">
+            <p>&copy; 2025 timepass. Built by subhash.</p>
+        </div>
+    </footer>
+</body>
+</html>
